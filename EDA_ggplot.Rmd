@@ -1,0 +1,54 @@
+---
+title: "EDA_ggplot"
+author: "Tong Sun"
+date: "4/4/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### GRFx
+```{r}
+GRFx <- read.csv("GRFx.csv")
+df <- GRFx[1:200, ]
+final_df <- as.data.frame(t(df))
+names(final_df)
+library(tibble)
+final_df <- final_df %>% add_column(ID = seq(1, nrow(final_df)), .before = "1")
+## use ggplot2
+library(reshape2)
+data_long <- melt(final_df, id.vars = "ID")
+library(ggplot2)
+ggplot(data_long, aes(x = ID, y = value, col = variable)) +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+### GRFy
+```{r}
+GRFy <- read.csv("GRFy.csv")
+df_y <- GRFy[1:200, ]
+final_df_y <- as.data.frame(t(df_y))
+names(final_df_y)
+final_df_y <- final_df_y %>% add_column(ID = seq(1, nrow(final_df_y)), .before = "1")
+data_long_y <- melt(final_df_y, id.vars = "ID")
+ggplot(data_long_y, aes(x = ID, y = value, col = variable)) +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
+### GRFz
+```{r}
+GRFz <- read.csv("GRFz.csv")
+df_z <- GRFz[1:200, ]
+final_df_z <- as.data.frame(t(df_z))
+names(final_df_z)
+final_df_z <- final_df_z %>% add_column(ID = seq(1, nrow(final_df_z)), .before = "1")
+data_long_z <- melt(final_df_z, id.vars = "ID")
+ggplot(data_long_z, aes(x = ID, y = value, col = variable)) +
+  geom_line() +
+  theme(legend.position = "none")
+```
+
