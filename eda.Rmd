@@ -1,0 +1,95 @@
+---
+title: "eda"
+author: "Clare Tang"
+date: '2022-04-04'
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("readxl")
+library(dplyr)
+library(ggplot2)
+library(gtools)
+library(fda)
+library(tidyr)
+library(ggpubr)
+library(cowplot)
+```
+
+## Data
+
+```{r}
+
+info <- read_xls("Data/IDinfo.xls")
+discrete <- read_xls("Data/discrete.xls")
+COPx <- read.csv("Data/COPx.csv")
+copx_s <- read.csv("Data/COPx_stance.csv")
+# ml <- read.csv("Data/ML_GRF_stance_N.csv")
+V <- read.csv("Data/V_GRF_stance_N.csv")
+GRFx <- read.csv("Data/GRFx.csv")
+
+```
+
+
+## COP
+
+```{r warning=FALSE}
+
+plot <- function (df, nrow){
+  
+  df2 <- df[1:nrow, ]
+  ID <- nrow(df2)
+  
+  force <- vector(mode = "list", length = nrow(df2))
+  time <- vector(mode = "list", length = nrow(df2))
+
+  for (i in 1:nrow(df2)){
+    force[i] <- list(as.numeric(df2[i, ]))
+    time[i] <- list(1:ncol(df2))
+  }
+    
+  table <- tibble(ID, time, force)
+  names(df) <- c("ID", "time", "force")
+  df_1 <- table %>% dplyr::select(!c(ID,force)) %>% unnest_longer(time) 
+  df_2 <- table %>% dplyr::select(!c(ID,time)) %>% unnest_longer(force)
+  ID <- sort(rep(1:nrow(df2),ncol(df2)))
+  df_l <- cbind(ID,df_1,df_2)
+  df_l[df_l == 0] <- NA
+  
+  p <- ggplot(df_l, aes(x = time, y = force, group = ID, colour = ID)) +
+  geom_line()
+  return(p)
+}
+
+# COPx 
+plot(COPx[, 1:1000], 100)+
+  ggtitle("COPx for first 100 observations")+
+  ylim(-.3, .3)+
+  ylab("COPx")
+
+# COPx stance
+plot(copx_s, 100)+
+  ggtitle("Normalized COPx for first 100 observations")+
+  ylim(-.3, .3)+
+  ylab("Normalized COPx")
+
+```
+
+# GRF
+
+```{r warning=FALSE}
+
+#GRFx
+plot(GRFx, 100)+
+  ggtitle("GRFx for first 100 observations")+
+  ylab("GRFx")
+
+# V_GRF
+plot(V, 100)+
+  ggtitle("Normalized V_GRF for first 100 observations")+
+  ylab("Normalized V_GRF")
+
+
+```
+
