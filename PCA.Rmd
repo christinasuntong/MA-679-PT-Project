@@ -1,0 +1,28 @@
+---
+title: "PCA"
+author: "Tong Sun"
+date: "4/6/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+data <- read_excel("discrete.xls")
+names(data)
+apply(data, 2, mean)
+apply(data, 2, var)
+pr.out <- prcomp(data, scale = TRUE)
+names(pr.out)
+pr.out$center
+pr.out$scale
+pr.out$rotation
+biplot(pr.out, scale = 0) # in a mirror image
+pr.out$rotation = -pr.out$rotation
+pr.out$x = -pr.out$x
+biplot(pr.out, scale = 0)
+```
+
