@@ -1,0 +1,105 @@
+---
+title: "FPCA"
+author: "Tong Sun"
+date: '2022-04-14'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(fda)
+library(dplyr)
+library(ggplot2)
+library(gtools)
+library(tidyr)
+library(ggpubr)
+library(cowplot)
+library(fdapace)
+```
+
+```{r}
+fake <- function (df, nrow){
+  
+  df2 <- df[1:nrow, ]
+  ID <- nrow(df2)
+  
+  force <- vector(mode = "list", length = nrow(df2))
+  time <- vector(mode = "list", length = nrow(df2))
+  for (i in 1:nrow(df2)){
+    force[i] <- list(as.numeric(df2[i, ]))
+    time[i] <- list(1:ncol(df2))
+  }
+    
+  table <- tibble(ID, time, force)
+  names(df) <- c("ID", "time", "force")
+  df_1 <- table %>% dplyr::select(!c(ID,force)) %>% unnest_longer(time) 
+  df_2 <- table %>% dplyr::select(!c(ID,time)) %>% unnest_longer(force)
+  ID <- sort(rep(1:nrow(df2),ncol(df2)))
+  df_l <- cbind(ID,df_1,df_2)
+  df_l[df_l == 0] <- NA
+   return(df_l)
+}
+
+GRFx <- read.csv("GRFx.csv")
+data1 <- fake(GRFx[, 1:200], 100)
+
+#df <- GRFx[1:200, ]
+#final_df <- as.data.frame(t(df))
+#n_obs <- 299000
+#time_span <- 100
+#time <- sort(runif(n_obs, 0, time_span))
+#func <- cumsum(rnorm(n_obs)) / sqrt(n_obs)
+#y_obs <- func + rnorm(n_obs, 0, .05)
+#times_basis <- seq(0, time_span, 1)
+#knots <- c(seq(0, time_span, 5))
+#n_knots <- length(knots)
+#n_order <- 4
+#n_basis <- length(knots) + n_order -2
+#basis <- create.bspline.basis(c(min(times_basis), max(times_basis)), n_basis, n_order, knots)
+#n_basis
+
+#PHI <- eval.basis(time, basis)
+#dim(PHI)
+
+#matplot(time, PHI, type = 'l',lwd = 1, lty = 1, xlab = 'time', ylab = 'basis', cex.lab = 1, cex.axis = 1)
+#for (i in 1:n_knots){
+  #abline(v = knots[i], lty = 2, lwd = 1)
+#}
+```
+```{r}
+#M <- ginv(t(PHI) %*% PHI) %*% t(PHI)
+#c_hat <- M %*% wiener
+#y_hat <- PHI %*% c_hat
+
+#data1 <- data1 %>% mutate(y_hat = y_hat)
+#p1 <- data1 %>% ggplot() +
+    #geom_line(aes(x = time, y = wiener), col = "grey") +
+    #geom_point(aes(x = time, y = y_obs)) +
+    #geom_line(aes(x = time, y = y_hat), col = "red")
+#p1 + ggtitle("Original curve and least squares estimate") + xlab("time") + ylab("f(time)")
+```
+
+```{r}
+#w_obj <- smooth.basis(argvals = time, y = y_obs, fdParobj = basis)
+#fun_pca <- pca.fd(w_obj, nharm = 5)
+```
+
+```{r}
+flies <-MakeFPCAInputs(data1$ID, data1$time, data1$force)
+fpcaobjflies <- FPCA(flies$Ly, flies$Lt, list(plot = TRUE, methodMuCovEst = 'smooth', userBwCov = 2))
+``` 
+
+```{r}
+require('ks')
+CreatePathPlot(fpcaobjflies, K = 4, main = 'K = 4', pch = 4); grid()
+par(mfrow = c(1,1))
+  CreateOutliersPlot(fpcaobjflies, optns = list(K= 4, variant =  'KDE'))
+  
+CreateFuncBoxPlot(fpcaobjflies, xlab = 'times', ylab = 'GRFx', optns = list(K = 4, variant = 'pointwise'))
+
+SelectK(fpcaobjflies)
+par(mfrow = c(1,2))
+CreatePathPlot(fpcaobjflies, K = 3, main = 'K=3', showObs = FALSE); grid()
+CreatePathPlot(fpcaobjflies, K = 3, main = 'K=3', showObs = FALSE, derOptns = list(p = 1, bw = 1.01, kernelType = 'epan')); grid()
+```
+
