@@ -24,9 +24,9 @@ library(cowplot)
 info <- read_xls("Data/IDinfo.xls")
 discrete <- read_xls("Data/discrete.xls")
 COPx <- read.csv("Data/COPx.csv")
-copx_s <- read.csv("Data/COPx_stance.csv")
+copx_s <- read.csv("Data/COPx_stance.csv", header = FALSE)
 Mx <- read.csv("Data/Mx.csv")
-V <- read.csv("Data/V_GRF_stance_N.csv")
+V <- read.csv("Data/V_GRF_stance_N.csv", header = FALSE)
 GRFx <- read.csv("Data/GRFx.csv")
 
 ```
@@ -96,3 +96,82 @@ plot(Mx, 100)+
 
 ```
 
+```{r}
+
+V_info <- V %>% mutate(id = info$ID, leg = info$KNEE, .before = V1) %>% 
+  group_by(id, leg)
+V_person <- aggregate(V_info[, 3:102], list(id = try$id, leg = try$leg), mean)%>% arrange(id, leg)
+
+# dim(V_person)
+# length(unique(V_person$id)) # 2291 individual
+set.seed(100)
+V_per <- V_person %>% group_by(id) %>% sample_n(1)
+
+# construct basis function
+# represent random functions as a linear combination of basis vectors
+knots <- c(seq(0,100,5))
+n_knots <- length(knots)
+n_order<- 4
+n_basis <- n_knots + n_order - 2
+basis <- create.bspline.basis(rangeval = c(0,100), n_basis)
+plot(basis)
+
+
+
+# 
+nrow <- 100
+V_try <- V_per[1:nrow, 3:102]
+ID <- nrow(V_try)
+
+V_force <- vector(mode = "list", length = nrow(V_try))
+V_time <- vector(mode = "list", length = nrow(V_try))
+
+for (i in 1:nrow(V_try)){
+  V_force[i] <- list(as.numeric(V_try[i, ]))
+  V_time[i] <- list(1:ncol(V_try))
+}
+table <- tibble(ID, V_time, V_force)
+names(V_per) <- c("ID", "V_time", "V_force")
+df_1 <- table %>% dplyr::select(!c(ID,V_force)) %>% unnest_longer(V_time) 
+df_2 <- table %>% dplyr::select(!c(ID,V_time)) %>% unnest_longer(V_force)
+ID <- sort(rep(1:nrow(V_try),ncol(V_try)))
+df_l <- cbind(ID,df_1,df_2)
+df_l[df_l == 0] <- NA
+
+argvals <- matrix(df_l$V_time, nrow = 100, ncol = nrow)
+y_mat <- matrix(df_l$V_force, nrow = 100, ncol = nrow)
+W.obj <- Data2fd(argvals = argvals, y = y_mat, basisobj = basis, lambda = 0.5) #  coefficients, basis functions, smoothing constant
+
+W_mean <- mean.fd(W.obj)
+W_sd <- std.fd(W.obj)
+# Create objects for the standard upper and lower standard deviation
+SE_u <- fd(basisobj = basis)
+SE_l <- fd(basisobj = basis)
+# Fill in the sd values
+SE_u$coefs <- W_mean$coefs +  1.96 * W_sd$coefs/sqrt(nrow) 
+SE_l$coefs <- W_mean$coefs -  1.96 * W_sd$coefs/sqrt(nrow)
+
+# smoothed data with pointwise mean and pointwise 95% CI
+plot(W.obj, xlab="Time", ylab="Normalized V_GRF", lty = 1)
+title(main = "Smoothed Curves")
+lines(SE_u, lwd = 3, lty = 3)
+lines(SE_l, lwd = 3, lty = 3)
+lines(W_mean,  lwd = 3)
+
+fun_pca <- pca.fd(W.obj, nharm = 4) # covariance matrix and the orthogonal eigenvector basis, computing 4 eigenvalues
+plot(fun_pca$harmonics, lwd = 3) # plot eigenvectors
+fun_pca$values
+fun_pca$varprop
+
+
+
+# alternatively
+CheckData(table$V_force,table$V_time) # check data, no error
+W_fpca <- FPCA(table$V_force,table$V_time) # calculate FPCA
+W_fpca$lambda # eigenvalues
+W_fpca$cumFVE # cumulative percentage of variance explained by eigenvalue
+head(W_fpca$xiEst) # scores
+plot(W_fpca)
+
+
+```
