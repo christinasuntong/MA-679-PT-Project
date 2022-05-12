@@ -14,7 +14,8 @@ library(gtools)
 library(fda)
 library(tidyr)
 library(ggpubr)
-library(cowplot)
+library(fdapace)
+library(kableExtra)
 ```
 
 ## Data
@@ -26,8 +27,33 @@ discrete <- read_xls("Data/discrete.xls")
 COPx <- read.csv("Data/COPx.csv")
 copx_s <- read.csv("Data/COPx_stance.csv", header = FALSE)
 Mx <- read.csv("Data/Mx.csv")
+AP <- read.csv("Data/AP_GRF_stance_N.csv", header = FALSE)
+ML <- read.csv("Data/ML_GRF_stance_N.csv", header = FALSE)
 V <- read.csv("Data/V_GRF_stance_N.csv", header = FALSE)
 GRFx <- read.csv("Data/GRFx.csv")
+
+ap <- AP %>% pivot_longer(cols = V1:V100, names_to = "time", values_to = "AP")
+ml <- ML %>% pivot_longer(cols = V1:V100, names_to = "time", values_to = "ML")
+v <- V %>% pivot_longer(cols = V1:V100, names_to = "time", values_to = "V")
+grf <- cbind(ap, ml, v)
+grf <- grf[, c(2, 4, 6)]
+# write.csv(grf,"D:/BU STUDY/spring/MA679/HW/project/MA-679-PT-Project/grf.csv", row.names = FALSE)
+# grf[100, ]
+
+# set.seed(100)
+# sample<- sample(c(rep(0, 0.7 * nrow(ap)), rep(1, 0.3 * nrow(ap))))
+# ap_train <- ap[sample == 0, ] 
+# ap_test <- ap[sample == 1, ] 
+# ml_train <- ap[sample == 0, ] 
+# ml_test <- ap[sample == 1, ] 
+# v_train <- ap[sample == 0, ] 
+# v_test <- ap[sample == 1, ] 
+# write.csv(ap_train,"D:/BU STUDY/spring/MA679/HW/project/MA-679-PT-Project/ap_train.csv", row.names = FALSE)
+# write.csv(ap_test,"D:/BU STUDY/spring/MA679/HW/project/MA-679-PT-Project/ap_test.csv", row.names = FALSE)
+# write.csv(ml_train,"D:/BU STUDY/spring/MA679/HW/project/MA-679-PT-Project/ml_train.csv", row.names = FALSE)
+# write.csv(ml_test,"D:/BU STUDY/spring/MA679/HW/project/MA-679-PT-Project/ml_test.csv", row.names = FALSE)
+# write.csv(v_train,"D:/BU STUDY/spring/MA679/HW/project/MA-679-PT-Project/v_train.csv", row.names = FALSE)
+# write.csv(v_test,"D:/BU STUDY/spring/MA679/HW/project/MA-679-PT-Project/v_test.csv", row.names = FALSE)
 
 ```
 
@@ -36,7 +62,8 @@ GRFx <- read.csv("Data/GRFx.csv")
 
 ```{r warning=FALSE}
 
-plot <- function (df, nrow){
+
+plot_time <- function (df, nrow){
   
   df2 <- df[1:nrow, ]
   ID <- nrow(df2)
@@ -63,16 +90,19 @@ plot <- function (df, nrow){
 }
 
 # COPx 
-plot(COPx[, 1:1000], 100)+
+plot_time(COPx[, 1:1000], 100)+
   ggtitle("COPx for first 100 observations")+
   ylim(-.3, .3)+
-  ylab("COPx")
+  ylab("COPx")+
+  xlab("ID")
 
 # COPx stance
-plot(copx_s, 100)+
+plot_time(copx_s, 100)+
   ggtitle("Normalized COPx for first 100 observations")+
   ylim(-.3, .3)+
-  ylab("Normalized COPx")
+  ylab("Normalized COPx")+
+  xlab("ID")
+
 
 ```
 
@@ -81,17 +111,17 @@ plot(copx_s, 100)+
 ```{r warning=FALSE}
 
 #GRFx
-plot(GRFx, 100)+
+plot_time(GRFx, 8)+
   ggtitle("GRFx for first 100 observations")+
   ylab("GRFx")
 
 # V_GRF
-plot(V, 100)+
+plot_time(V, 8)+
   ggtitle("Normalized V_GRF for first 100 observations")+
   ylab("Normalized V_GRF")
 
 # Mx
-plot(Mx, 100)+
+plot_time(Mx, 8)+
   ylab("Mx")
 
 ```
@@ -100,12 +130,18 @@ plot(Mx, 100)+
 
 V_info <- V %>% mutate(id = info$ID, leg = info$KNEE, .before = V1) %>% 
   group_by(id, leg)
-V_person <- aggregate(V_info[, 3:102], list(id = try$id, leg = try$leg), mean)%>% arrange(id, leg)
+V_person <- aggregate(V_info[, 3:102], list(id = V_info$id, leg = V_info$leg), mean)%>% arrange(id, leg)
+V_person[1:6, 1:10] %>%
+  kbl() %>%
+  kable_classic(full_width = F, html_font = "Cambria")
 
 # dim(V_person)
 # length(unique(V_person$id)) # 2291 individual
 set.seed(100)
 V_per <- V_person %>% group_by(id) %>% sample_n(1)
+V_per[1:6, 1:10] %>%
+  kbl() %>%
+  kable_classic(full_width = F, html_font = "Cambria")
 
 # construct basis function
 # represent random functions as a linear combination of basis vectors
@@ -160,8 +196,9 @@ lines(W_mean,  lwd = 3)
 
 fun_pca <- pca.fd(W.obj, nharm = 4) # covariance matrix and the orthogonal eigenvector basis, computing 4 eigenvalues
 plot(fun_pca$harmonics, lwd = 3) # plot eigenvectors
+title(main = "First 4 eigenvectors")
 fun_pca$values
-fun_pca$varprop
+fun_pca$varprop %>% kbl()
 
 
 
@@ -175,3 +212,66 @@ plot(W_fpca)
 
 
 ```
+
+# prediction on individual
+
+```{r}
+
+first_ap <- cbind(id = info$ID, trial = info$TRIAL, AP) %>% filter(id == 1) %>%
+  arrange(trial) %>%
+  pivot_longer(cols = V1:V100, names_to = "time", values_to = "AP")
+
+
+first_ml <- cbind(id = info$ID, trial = info$TRIAL, ML) %>% filter(id == 1) %>%
+  arrange(trial) %>% 
+  pivot_longer(cols = V1:V100, names_to = "time", values_to = "ML")
+
+
+first_v <- cbind(id = info$ID, trial = info$TRIAL, V) %>% filter(id == 1) %>%
+  arrange(trial) %>% 
+  pivot_longer(cols = V1:V100, names_to = "time", values_to = "V")
+
+par(mfrow=c(3, 1))
+plot(first_ap$AP, pch = 20, cex = .2, xlab = "AP")
+plot(first_ml$ML, pch = 20, cex = .2, xlab = "ML")
+plot(first_v$V, pch = 20, cex = .2, xlab = "V")
+
+first <- cbind(first_ap, ML = first_ml$ML, V = first_v$V)
+first <- first[, 4:6] %>% mutate(time = 1:nrow(first_ap)) %>% relocate(time)
+write.csv(first,"D:/BU STUDY/spring/MA679/HW/project/MA-679-PT-Project/first.csv", row.names = T)
+
+```
+
+# prediction by GCNN
+
+```{r}
+
+ap <- AP_try %>% pivot_longer(cols = V1:V100, names_to = "time", values_to = "AP")
+ml <- ML_try %>% pivot_longer(cols = V1:V100, names_to = "time", values_to = "ML")
+v <- V_try %>% pivot_longer(cols = V1:V100, names_to = "time", values_to = "V")
+grf <- cbind(ap, ml, v)
+grf <- grf[, c(2, 4, 6)]
+
+x <- NULL
+try <- for (i in 1:100) {
+  x <- append(x, rep(i, 100))
+}
+grf$id <- x
+grf <- grf[, c(4, 1, 2, 3)]
+
+grf <- grf %>% pivot_longer(!id, names_to = "force", values_to = "value")
+
+grf$force <- ifelse(grf$force == "AP", 1, ifelse(grf$force == "ML", 2, 3))
+grf <- grf %>% arrange(force)
+
+
+date <- seq(as.Date("2013/1/1"), as.Date("2013/4/10"), "days")
+grf$date <- rep(date, 100*3)
+grf <- grf[, c(4, 1, 2, 3)]
+write.csv(grf,"D:/BU STUDY/spring/MA679/HW/project/MA-679-PT-Project/grf.csv", row.names = FALSE)
+
+
+
+
+```
+
