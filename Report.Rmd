@@ -1,0 +1,26 @@
+---
+title: "PT Report"
+author: "Group Six"
+date: "5/11/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,out.width="0.9\\linewidth",dev="pdf",fig.align  = 'center')
+```
+
+## Introduction
+Mechanical loading has been implicated in knee osteoarthritis(OA) pathogenesis, suggesting that interventions aimed at changing joint loading may be key to reducing the burden of knee OA. Knee OA is characterized by radiographic damage and clinical symptoms, particularly knee pain, however, individuals may have knee pain without radiographic damage or vice versa. Traditionally, gait differences among individuals with and without knee OA have been compared using specific, discrete metrics extracted from gait waveforms, such as a peak or impulse.
+
+Our client is focusing on Movement & Applied Imaging Lab and wants to analyze ground reaction force patterns in knees with and without radiographic osteoarthritis and pain.
+
+## Data
+The data used in this project is from the Multicenter Osteoarthritis Study(MOST). MOST is a prospective, NIH-funded cohort study of risk factors for the incidence and progression of OA and includes two clinic sites in the United States. Three-dimensional GRF data were recorded at 1,000 Hz using a portable force platform and AccuGait walkway (AMTI Inc., Watertown, MA, USA). Participants walked along the 5.3-m walkway at self-selected speed wearing their own typical footwear. Approximately five trials of GRF data were acquired from each leg of each participant. The first trial for each leg was considered an acclimatization trial and excluded. 
+
+Legs with at least three remaining trials where the foot landed completely on the force plate and a corresponding gait speed measurement was available were retained for analysis. For each leg, raw, unfiltered GRF waveforms were time-normalized to the stance phase of the gait cycle and ensemble averaged across three randomly selected remaining trials.
+
+## Result
+
+## Discussion
